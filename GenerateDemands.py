@@ -1,7 +1,8 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-
+import random
+import time
 def create_topology():
     g_temp = nx.Graph()
     # Don't need to add nodes separately.
@@ -26,41 +27,43 @@ if __name__ == "__main__":
     # print(outdeg)
 
     outdeg = g.out_degree()
-    print(outdeg)
+    #print(outdeg)
     flow_value = nx.maximum_flow_value(g, 1, 2)
-    print(flow_value)
+    #print(flow_value)
     flow_value = nx.maximum_flow_value(g, 3, 1)
-    print(flow_value)
+    #print(flow_value)
     flow_value = nx.maximum_flow_value(g, 2, 5)
-    print(flow_value)
+    #print(flow_value)
     flow_value = nx.maximum_flow_value(g, 6, 2)
-    print(flow_value)
+    #print(flow_value)
     flow_value = nx.maximum_flow_value(g, 1, 5)
-    print(flow_value)
+    #print(flow_value)
     # to_remove = [n for n in outdeg if outdeg[n] == 1]
     # g.remove_nodes_from(to_remove)
 
     nx.draw(g, with_labels=True)
     plt.draw()
-    plt.show()
+    #plt.show()
 
 
-    a = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
-    for i in range(len(a)):
-        for j in range(len(a[0])):
-            #print(a[i][j])
-            print()
-    a = np.asarray(a)
-    print(a)
-    print(a[0:2, 0])
-    print(a[1, :2])
+    alist = np.zeros([3, 3])
+    max_flows = [2, 3, 1]
 
-    '''outdeg = G.out_degree()
-    to_remove = [n for n in outdeg if outdeg[n] == 1]
-    Removing is then:
+    tic = time.time()
+    for t in range(1000000):
 
-    G.remove_nodes_from(to_remove)
-    If you prefer to create a new graph instead of modifying the existing graph in place, create a subgraph:
+        for i in range(alist.shape[0]):
+            for j in range(alist.shape[1]):
+                alist[i, j] = random.uniform(0,
+                                             min(max_flows[j] - np.sum(alist[:i, j]),
+                                                 max_flows[i] - np.sum(alist[i, :j])))
 
-    to_keep = [n for n in outdeg if outdeg[n] != 1]
-    G.subgraph(to_keep)'''
+
+        #print(alist)
+        axis0 = alist.sum(axis=0)
+        axis1 = alist.sum(axis=1)
+        check = [axis0[i] < max_flows[i] and axis1[i] < max_flows[i] for i in range(len(max_flows))]
+        if not all(check):
+            print("One found")
+    print("Required time: ", time.time()-tic)
+
