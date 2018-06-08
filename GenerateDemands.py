@@ -1,11 +1,11 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 def create_topology():
     g_temp = nx.Graph()
     # Don't need to add nodes separately.
-    g_temp.add_edge(1, 2, capacity=1000, weight=1)  # add a "capacity" parameter
+    g_temp.add_edge(1, 2, capacity=1, weight=1)  # add a "capacity" parameter
     g_temp.add_edge(1, 3, capacity=1, weight=1)  # can have any name you like
     g_temp.add_edge(2, 3, capacity=1, weight=1)
     g_temp.add_edge(2, 4, capacity=1, weight=1)
@@ -43,6 +43,17 @@ if __name__ == "__main__":
     nx.draw(g, with_labels=True)
     plt.draw()
     plt.show()
+
+
+    a = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    for i in range(len(a)):
+        for j in range(len(a[0])):
+            #print(a[i][j])
+            print()
+    a = np.asarray(a)
+    print(a)
+    print(a[0:2, 0])
+    print(a[1, :2])
 
     '''outdeg = G.out_degree()
     to_remove = [n for n in outdeg if outdeg[n] == 1]
