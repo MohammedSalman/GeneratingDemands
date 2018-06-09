@@ -5,22 +5,52 @@ import random
 import time
 
 
-def create_topology():
+def create_simple_topology():
     g_temp = nx.Graph()
     # Don't need to add nodes separately.
-    g_temp.add_edge(1, 2, capacity=1, weight=1)  # add a "capacity" parameter
-    g_temp.add_edge(1, 3, capacity=1, weight=1)  # can have any name you like
-    g_temp.add_edge(2, 3, capacity=1, weight=1)
-    g_temp.add_edge(2, 4, capacity=1, weight=1)
-    g_temp.add_edge(4, 5, capacity=1, weight=1)
-    g_temp.add_edge(1, 6, capacity=1, weight=1)
+    g_temp.add_edge(0, 1, capacity=1, weight=1)  # add a "capacity" parameter
+    g_temp.add_edge(1, 2, capacity=1, weight=1)  # can have any name you like
+    g_temp.add_edge(0, 3, capacity=1, weight=1)
+    g_temp.add_edge(1, 3, capacity=1, weight=1)
+    g_temp.add_edge(3, 2, capacity=1, weight=1)
+    g_temp.add_edge(3, 4, capacity=1, weight=1)
 
     # print(g_temp.edges(data=True))
     g = g_temp.to_directed()  # Nice function to produce a directed version
     # print(g.edges(data=True))
 
-    return (g)
+    return g
 
+
+def create_nsf_topology():
+    g_temp = nx.Graph()
+    # Don't need to add nodes separately.
+    g_temp.add_edge(1, 2, capacity=1, weight=1)  # add a "capacity" parameter
+    g_temp.add_edge(1, 3, capacity=1, weight=1)  # can have any name you like
+    g_temp.add_edge(1, 8, capacity=1, weight=1)
+    g_temp.add_edge(2, 3, capacity=1, weight=1)
+    g_temp.add_edge(2, 4, capacity=1, weight=1)
+    g_temp.add_edge(3, 6, capacity=1, weight=1)
+    g_temp.add_edge(4, 5, capacity=1, weight=1)
+    g_temp.add_edge(4, 11, capacity=1, weight=1)
+    g_temp.add_edge(5, 6, capacity=1, weight=1)
+    g_temp.add_edge(5, 7, capacity=1, weight=1)
+    g_temp.add_edge(6, 10, capacity=1, weight=1)
+    g_temp.add_edge(6, 13, capacity=1, weight=1)
+    g_temp.add_edge(7, 8, capacity=1, weight=1)
+    g_temp.add_edge(8, 9, capacity=1, weight=1)
+    g_temp.add_edge(9, 10, capacity=1, weight=1)
+    g_temp.add_edge(9, 12, capacity=1, weight=1)
+    g_temp.add_edge(9, 14, capacity=1, weight=1)
+    g_temp.add_edge(11, 12, capacity=1, weight=1)
+    g_temp.add_edge(11, 14, capacity=1, weight=1)
+    g_temp.add_edge(12, 13, capacity=1, weight=1)
+    g_temp.add_edge(13, 14, capacity=1, weight=1)
+
+    # print(g_temp.edges(data=True))
+    g = g_temp.to_directed()  # Nice function to produce a directed version
+    # print(g.edges(data=True))
+    return g
 
 def check_validity(alist):
     #This function checks for two things:
@@ -41,47 +71,43 @@ def check_validity(alist):
 
 
 if __name__ == "__main__":
-    g = create_topology()
 
-    outdeg = g.edges
-    # print(outdeg)
+    g = create_simple_topology()
+    n_nodes = len(g)
+    print(n_nodes)
+    max_flows_dict = {}
 
-    outdeg = g.out_degree()
-    # print(outdeg)
-    flow_value = nx.maximum_flow_value(g, 1, 2)
-    # print(flow_value)
-    flow_value = nx.maximum_flow_value(g, 3, 1)
-    # print(flow_value)
-    flow_value = nx.maximum_flow_value(g, 2, 5)
-    # print(flow_value)
-    flow_value = nx.maximum_flow_value(g, 6, 2)
-    # print(flow_value)
-    flow_value = nx.maximum_flow_value(g, 1, 5)
-    # print(flow_value)
-    # to_remove = [n for n in outdeg if outdeg[n] == 1]
-    # g.remove_nodes_from(to_remove)
+    for i in range(n_nodes):
+        for j in range(n_nodes):
+            if i == j:
+                continue
+            max_flows_dict[(i, j)] = nx.maximum_flow_value(g, i, j)
+    print(max_flows_dict)
+    #for i in range(no_of_nodes)
+
+
 
     nx.draw(g, with_labels=True)
     plt.draw()
-    # plt.show()
+    #plt.show()
 
-    n_nodes = 14
     alist = np.zeros([n_nodes, n_nodes])
     max_flows = [1] * n_nodes
 
     tic = time.time()
-    for t in range(1):
+    for t in range(10000):
         alist1DnoZeros = []
         for i in range(alist.shape[0]):
             for j in range(alist.shape[1]):
                 if i == j:
                     continue
-                alist[i, j] = random.uniform(0.0,
+                alist[i, j] = \
+                    random.uniform(0.0,
                                              min(max_flows[j] - np.sum(alist[:i, j]),
                                                  max_flows[i] - np.sum(alist[i, :j])))
                 alist1DnoZeros.append(alist[i, j])
         #print(alist)
         #print("************************")
-        print(list(alist1DnoZeros))
-        check_validity(alist)
+        #print(list(alist1DnoZeros))
+        #check_validity(alist)
     print("Required time: ", time.time() - tic)
