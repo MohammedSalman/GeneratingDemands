@@ -45,21 +45,23 @@ if __name__ == "__main__":
     plt.draw()
     #plt.show()
 
-
-    alist = np.zeros([3, 3])
-    max_flows = [2, 3, 1]
+    n_nodes = 14
+    alist = np.zeros([n_nodes, n_nodes])
+    max_flows = [3] * n_nodes
 
     tic = time.time()
-    for t in range(1000000):
+    for t in range(10000):
 
         for i in range(alist.shape[0]):
             for j in range(alist.shape[1]):
-                alist[i, j] = random.uniform(0,
+                if i == j: continue
+                alist[i, j] = random.uniform(0.0,
                                              min(max_flows[j] - np.sum(alist[:i, j]),
                                                  max_flows[i] - np.sum(alist[i, :j])))
 
 
         #print(alist)
+        #print("************************")
         axis0 = alist.sum(axis=0)
         axis1 = alist.sum(axis=1)
         check = [axis0[i] < max_flows[i] and axis1[i] < max_flows[i] for i in range(len(max_flows))]
