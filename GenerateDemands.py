@@ -77,6 +77,7 @@ if __name__ == "__main__":
     print(n_nodes)
     max_flows_dict = {}
 
+    #Find max_flow between all pairs:
     for i in range(n_nodes):
         for j in range(n_nodes):
             if i == j:
@@ -86,6 +87,114 @@ if __name__ == "__main__":
     #for i in range(no_of_nodes)
 
 
+
+    #dictionary for labeling links that are used for grouping them.
+    #to keep track of residual capacity.
+    #TODO: This dictionary should be automatically computed (not hardcoded!).
+    residual_network = {
+        'outgoing': {
+            0: {
+                'group1': {
+                    'reachable_nodes': [1, 2, 3, 4],
+                    'capacity': 2,
+                    'used_capacity': 0
+                }
+
+            },
+            1: {
+                'group1': {
+                    'reachable_nodes': [0, 2, 3, 4],
+                    'capacity': 3,
+                    'used_capacity': 0
+                }
+
+            },
+            2: {
+                'group1': {
+                    'reachable_nodes': [0, 1, 3, 4],
+                    'capacity': 2,
+                    'used_capacity': 0
+                }
+
+            },
+            3: {
+                'group1': {
+                    'reachable_nodes': [0, 1, 2],
+                    'capacity': 3,
+                    'used_capacity': 0
+                },
+                'group2': {
+                    'reachable_nodes': [4],
+                    'capacity': 1,
+                    'used_capacity': 0
+                }
+
+            },
+            4: {
+                'group1': {
+                    'reachable_nodes': [3],
+                    'capacity': 1,
+                    'used_capacity': 0
+                }
+
+            },
+        },
+        'incoming': {
+            0: {
+                'group1': {
+                    'reachable_nodes': [1, 2, 3, 4],
+                    'capacity': 2,
+                    'used_capacity': 0
+                }
+
+            },
+            1: {
+                'group1': {
+                    'reachable_nodes': [0, 2, 3, 4],
+                    'capacity': 3,
+                    'used_capacity': 0
+                }
+
+            },
+            2: {
+                'group1': {
+                    'reachable_nodes': [0, 1, 3, 4],
+                    'capacity': 2,
+                    'used_capacity': 0
+                }
+
+            },
+            3: {
+                'group1': {
+                    'reachable_nodes': [0, 1, 2],
+                    'capacity': 3,
+                    'used_capacity': 0
+                },
+                'group2': {
+                    'reachable_nodes': [4],
+                    'capacity': 1,
+                    'used_capacity': 0
+                }
+
+            },
+            4: {
+                'group1': {
+                    'reachable_nodes': [3],
+                    'capacity': 1,
+                    'used_capacity': 0
+                }
+
+            },
+        }
+    }
+
+    def return_capacity(node, direction):
+        return residual_network[direction][node]['group1']['capacity']
+
+    print("returned capacity:", return_capacity(0, 'outgoing'))
+    def node_reachable(src, node, group):
+        return node in residual_network['outgoing'][src][group]['reachable_nodes']
+    print("Checking if node 1 is reachable from 0: ", node_reachable(0, 1, 'group1'))
 
     nx.draw(g, with_labels=True)
     plt.draw()
