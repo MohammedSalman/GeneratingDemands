@@ -79,20 +79,36 @@ def check_validity(alist):
 
 def calculate_residual_network(g):
 
+    temp_dict = {}
     # print(g.edges(0))
     for node in g.nodes():
+        temp_dict[node] = {}
         # put edges of this node in a stack
         edges = g.edges(node)
         # copy to a temp graph
+        list_of_group_sets = []
+        group_id = 0
         for edge in edges:
             temp_g = g.copy()
             # remove all edges of that node from temp_g
             temp_g.remove_edges_from(edges)
             # now return current edge and calculate descendants.
             temp_g.add_edge(node, edge[1])
-            print("descendants of node ", node, " are: ", nx.descendants(temp_g, node))
-        print("**************")
+            descendants = nx.descendants(temp_g, node)
+            if descendants in list_of_group_sets:
+                print("adding capacity")
+                accumulated_capacity += g[node][edge[1]]['capacity']
 
+                # TODO: add up capacity
+            else:
+                accumulated_capacity+=g[node][edge[1]]['capacity']
+                group_id += 1
+                temp_dict[node]['group' + str(group_id)]={}
+                temp_dict[node]['group' + str(group_id)]['capacity'] = 2
+                temp_dict[node]['group' + str(group_id)]['used_capacity'] = 0
+                #temp_dict[node]['group'+str(group_id)]={'reachable_nodes':list(descendants)}
+                list_of_group_sets.append(set(descendants))
+    print(temp_dict)
     return None
 
 
