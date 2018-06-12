@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 import time
+from termcolor import colored
 
 
 def create_simple_topology():
@@ -60,10 +61,10 @@ def check_validity(alist):
     axis0 = alist.sum(axis=0)
 
     axis1 = alist.sum(axis=1)
-    print("axis0: ", axis0)
-    print("Difference: ", [axis0[i] - max_flows[i] for i in range(len(max_flows))])
-    print("axis1: ", axis1)
-    print("Difference: ", [axis1[i] - max_flows[i] for i in range(len(max_flows))])
+    #print("axis0: ", axis0)
+    #print("Difference: ", [axis0[i] - max_flows[i] for i in range(len(max_flows))])
+    #print("axis1: ", axis1)
+    #print("Difference: ", [axis1[i] - max_flows[i] for i in range(len(max_flows))])
     check0 = all([axis0[i] <= max_flows[i] and
                   axis1[i] <= max_flows[i]
                   for i in range(len(max_flows))])
@@ -71,9 +72,8 @@ def check_validity(alist):
               for i in range(alist.shape[0])
               for j in range(alist.shape[1])])
     if not check0 or not check1:
-        print("Found invalid demands")
+        print(colored("Found invalid demands", "green"))
         return False
-
     return
 
 
@@ -203,11 +203,19 @@ if __name__ == "__main__":
     def update_used_capacity(src, dst, value):
         for direction in residual_network.keys():
             #print(direction)
-            group = get_group_name(src, dst)
+            if direction == 'outgoing':
+                group = get_group_name(src, dst)
+                used_capacity = residual_network[direction][src][group]['used_capacity']
+                residual_network[direction][src][group]['used_capacity'] = used_capacity + value
+
+            if direction == 'incoming':
+                group = get_group_name(dst, src)
+                used_capacity = residual_network[direction][dst][group]['used_capacity']
+                residual_network[direction][dst][group]['used_capacity'] = used_capacity + value
+
             #print(group)
-            used_capacity = residual_network[direction][src][group]['used_capacity']
-            capacity = residual_network[direction][src][group]['capacity']
-            residual_network[direction][src][group]['used_capacity'] = used_capacity + value
+            #capacity = residual_network[direction][src][group]['capacity']
+
 
 
 
