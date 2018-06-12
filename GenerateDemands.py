@@ -56,7 +56,7 @@ def create_nsf_topology():
 def check_validity(alist):
     #This function checks for two things:
     #First: if the summation of cols and rows are less or equal max_flows.
-    #Secnd: if all the numbers in 2D array are greater than 0.
+    #Second: if all the numbers in 2D array are greater than 0.
     max_flows = [2, 3, 2, 4, 1]
     axis0 = alist.sum(axis=0)
 
@@ -77,27 +77,48 @@ def check_validity(alist):
     return
 
 
+def calculate_residual_network(g):
+
+    # print(g.edges(0))
+    for node in g.nodes():
+        # put edges of this node in a stack
+        edges = g.edges(node)
+        # copy to a temp graph
+        for edge in edges:
+            temp_g = g.copy()
+            # remove all edges of that node from temp_g
+            temp_g.remove_edges_from(edges)
+            # now return current edge and calculate descendants.
+            temp_g.add_edge(node, edge[1])
+            print("descendants of node ", node, " are: ", nx.descendants(temp_g, node))
+        print("**************")
+
+    return None
+
+
 if __name__ == "__main__":
 
     g = create_simple_topology()
     n_nodes = len(g)
     print(n_nodes)
+
+    residual_network = calculate_residual_network(g)
+
     max_flows_dict = {}
 
-    #Find max_flow between all pairs:
+    # Find max_flow between all pairs:
     for i in range(n_nodes):
         for j in range(n_nodes):
             if i == j:
                 continue
+            # nice function in networkX to find the
+            # maximum flow in a single-commodity flow.
             max_flows_dict[(i, j)] = nx.maximum_flow_value(g, i, j)
-    print(max_flows_dict)
-    #for i in range(no_of_nodes)
+    #print(max_flows_dict)
 
-
-
-    #dictionary for labeling links that are used for grouping them.
-    #to keep track of residual capacity.
-    #TODO: This dictionary should be automatically computed (not hardcoded!).
+    # dictionary for labeling links that are used for grouping them.
+    # to keep track of residual capacity.
+    # TODO: This dictionary should be automatically computed (not hardcoded!).
     residual_network = {
         'outgoing': {
             0: {
@@ -202,7 +223,6 @@ if __name__ == "__main__":
                residual_network[direction][src][group]['used_capacity']
     def update_used_capacity(src, dst, value):
         for direction in residual_network.keys():
-            #print(direction)
             if direction == 'outgoing':
                 group = get_group_name(src, dst)
                 used_capacity = residual_network[direction][src][group]['used_capacity']
@@ -224,16 +244,13 @@ if __name__ == "__main__":
         return node in residual_network['outgoing'][src][group]['reachable_nodes']
     print("Checking if node 1 is reachable from 0: ", node_reachable(0, 1, 'group1'))
 
-
-
     nx.draw(g, with_labels=True)
     plt.draw()
     #plt.show()
 
     alist = np.zeros([n_nodes, n_nodes])
-
-
     tic = time.time()
+    scaler = 0.60 # generate random up to 60% of the available unused capacity.
     for t in range(1):
         alist1DnoZeros = []
         for i in range(alist.shape[0]):
@@ -243,22 +260,16 @@ if __name__ == "__main__":
                 min_cap_both_directions = min(get_available_capacity(i, j, 'outgoing'),
                                               get_available_capacity(j, i, 'incoming'))
                 if max_flows_dict[(i, j)] <= min_cap_both_directions:
-                    alist[i, j] = random.uniform(0.0, max_flows_dict[i, j])
+                    alist[i, j] = random.uniform(0.0, max_flows_dict[i, j] * scaler)
                 else:
-                    alist[i, j] = random.uniform(0.0, min_cap_both_directions)
+                    alist[i, j] = random.uniform(0.0, min_cap_both_directions * scaler)
 
-                #now update the used_capacity in both directions
+                #now update the used_capacity in both directions.
+                #this function will handle the both directions.
                 update_used_capacity(i, j, alist[i, j])
-                '''alist[i, j] = \
-                    random.uniform(0.0,
-                                             min(max_flows[j] - np.sum(alist[:i, j]),
-                                                 max_flows[i] - np.sum(alist[i, :j])))'''
+                #get a 1D version with no zeros (no diagonal)
                 alist1DnoZeros.append(alist[i, j])
-        print(alist)
+        print(alist1DnoZeros)
         check_validity(alist)
-        #if check_validity(alist):
-        #   print(alist1DnoZeros)
-        #print("************************")
-        #print(list(alist1DnoZeros))
 
     print("Required time: ", time.time() - tic)
