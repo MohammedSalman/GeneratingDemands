@@ -52,10 +52,11 @@ def create_nsf_topology():
     # print(g.edges(data=True))
     return g
 
+
 def check_validity(alist, g):
-    #This function checks for two things:
-    #First: if the summation of cols and rows are less or equal max_flows.
-    #Second: if all the numbers in 2D array are greater than 0.
+    # This function checks for two things:
+    # First: if the summation of cols and rows are less or equal max_flows.
+    # Second: if all the numbers in 2D array are greater than 0.
 
     # max_flows is a maximum a node can send
     # (the summation of capacities of all outgoing links)
@@ -65,16 +66,16 @@ def check_validity(alist, g):
             max_flows[node] += g[node][edge[1]]['capacity']
     axis0 = alist.sum(axis=0)
     axis1 = alist.sum(axis=1)
-    #print("axis0: ", axis0)
-    #print("Difference: ", [axis0[i] - max_flows[i] for i in range(len(max_flows))])
-    #print("axis1: ", axis1)
-    #print("Difference: ", [axis1[i] - max_flows[i] for i in range(len(max_flows))])
+    # print("axis0: ", axis0)
+    # print("Difference: ", [axis0[i] - max_flows[i] for i in range(len(max_flows))])
+    # print("axis1: ", axis1)
+    # print("Difference: ", [axis1[i] - max_flows[i] for i in range(len(max_flows))])
     check0 = all([axis0[i] <= max_flows[i] and
                   axis1[i] <= max_flows[i]
                   for i in range(len(max_flows))])
     check1 = all([alist[i, j] >= 0
-              for i in range(alist.shape[0])
-              for j in range(alist.shape[1])])
+                  for i in range(alist.shape[0])
+                  for j in range(alist.shape[1])])
     if not check0 or not check1:
         print(colored("Found invalid demands", "green"))
         return False
@@ -100,7 +101,7 @@ def build_residual_network_dict(g):
             temp_g.add_edge(node, edge[1])
             descendants = nx.descendants(temp_g, node)
             if descendants in list_of_group_sets:
-                #adding capacity
+                # adding capacity
                 accumulated_capacity[tuple(descendants)] += g[node][edge[1]]['capacity']
                 temp_dict[node]['group' + str(group_id)]['capacity'] = accumulated_capacity[tuple(descendants)]
             else:
@@ -114,8 +115,6 @@ def build_residual_network_dict(g):
                 list_of_group_sets.append(set(descendants))
     return temp_dict
 
-def return_capacity(node, direction):
-    return residual_network[direction][node]['group1']['capacity']
 
 def get_group_name(src, node):
     for group in residual_network['outgoing'][src].keys():
@@ -123,11 +122,13 @@ def get_group_name(src, node):
             return group
     # raise "node should be reachable in one of the groups"
 
+
 def get_available_capacity(src, dst, direction):
     group = get_group_name(src, dst)
     # print(src, dst, group)
     return residual_network[direction][src][group]['capacity'] - \
            residual_network[direction][src][group]['used_capacity']
+
 
 def update_used_capacity(src, dst, value):
     for direction in residual_network.keys():
@@ -144,58 +145,77 @@ def update_used_capacity(src, dst, value):
         # print(group)
         # capacity = residual_network[direction][src][group]['capacity']
 
+
 def node_reachable(src, node, group):
     return node in residual_network['outgoing'][src][group]['reachable_nodes']
 
 
-if __name__ == "__main__":
-
-    g = create_simple_topology()
-    n_nodes = len(g)
-    residual_network = build_residual_network_dict(g)
-    residual_network = {'outgoing': residual_network, 'incoming': residual_network}
-
-    max_flows_dict = {}
-
-    # Find max_flow between all pairs:
-    for i in range(n_nodes):
-        for j in range(n_nodes):
+def build_max_flows_dict(g):
+    global i, j
+    for i in g.nodes():
+        for j in g.nodes():
             if i == j:
                 continue
             # nice function in networkX to find the
             # maximum flow in a single-commodity flow.
             max_flows_dict[(i, j)] = nx.maximum_flow_value(g, i, j)
-    #print(max_flows_dict)
+    return max_flows_dict
 
+
+def create_demand(g, scaler):
+    n_nodes = len(g)
+    demand2D = np.zeros([n_nodes, n_nodes])
+    demand1D = []
+    for i in range(demand2D.shape[0]):
+        for j in range(demand2D.shape[1]):
+            if i == j:
+                continue
+            min_cap_both_directions = min(get_available_capacity(i, j, 'outgoing'),
+                                          get_available_capacity(j, i, 'incoming'))
+            if max_flows_dict[(i, j)] <= min_cap_both_directions:
+                demand2D[i, j] = random.uniform(0.0, max_flows_dict[i, j] * scaler)
+            else:
+                demand2D[i, j] = random.uniform(0.0, min_cap_both_directions * scaler)
+
+            # now update the used_capacity in both directions.
+            # this function will handle the both directions.
+            update_used_capacity(i, j, demand2D[i, j])
+            # get a 1D version with no zeros (no diagonal)
+            demand1D.append(demand2D[i, j])
+    check_validity(demand2D, g)
+    return demand1D
+
+
+def draw_graph(g):
     nx.draw(g, with_labels=True)
     plt.draw()
-    #plt.show() #enable to show a graph of the network
+    # plt.show() #enable to show a graph of the network
 
-    alist = np.zeros([n_nodes, n_nodes])
-    tic = time.time()
-    scaler = 0.60 # generate random up to 60% of the available unused capacity.
-    for t in range(1):
-        alist1DnoZeros = []
-        for i in range(alist.shape[0]):
-            for j in range(alist.shape[1]):
-                if i == j:
-                    continue
-                min_cap_both_directions = min(get_available_capacity(i, j, 'outgoing'),
-                                              get_available_capacity(j, i, 'incoming'))
-                if max_flows_dict[(i, j)] <= min_cap_both_directions:
-                    alist[i, j] = random.uniform(0.0, max_flows_dict[i, j] * scaler)
-                else:
-                    alist[i, j] = random.uniform(0.0, min_cap_both_directions * scaler)
 
-                #now update the used_capacity in both directions.
-                #this function will handle the both directions.
-                update_used_capacity(i, j, alist[i, j])
-                #get a 1D version with no zeros (no diagonal)
-                alist1DnoZeros.append(alist[i, j])
-        print(alist1DnoZeros)
-        check_validity(alist, g)
+if __name__ == "__main__":
 
-    print("Required time: ", time.time() - tic)
+
+
+    #scaler = 0.60  # generate random up to 60% of the available unused capacity.
+    scalers = [0.1] * 100
+    for scaler in scalers:
+        g = create_simple_topology()
+        residual_network = build_residual_network_dict(g)
+        residual_network = {'outgoing': residual_network, 'incoming': residual_network}
+
+        # Find max_flow between all pairs:
+        max_flows_dict = {}
+        max_flows_dict = build_max_flows_dict(g)
+        # print(max_flows_dict)
+
+        draw_graph(g)
+
+        #print(scaler)
+        demands = create_demand(g, scaler)
+        print(demands)
+        #print(sum(demands))
+
+
 
 ###########################################################
 # THIS IS AN EXAMPLE OF HOW THE DICTIONARY SHOULD LOOK LIKE
