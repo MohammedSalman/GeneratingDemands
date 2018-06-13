@@ -63,7 +63,6 @@ def check_validity(alist, g):
     for node in g.nodes():
         for edge in g.edges(node):
             max_flows[node] += g[node][edge[1]]['capacity']
-
     axis0 = alist.sum(axis=0)
     axis1 = alist.sum(axis=1)
     #print("axis0: ", axis0)
@@ -83,13 +82,12 @@ def check_validity(alist, g):
 
 
 def build_residual_network_dict(g):
-
+    # dictionary for labeling links that are used for grouping them.
+    # to keep track of residual capacity later.
     temp_dict = {}
     accumulated_capacity = {}
-    # print(g.edges(0))
     for node in g.nodes():
         temp_dict[node] = {}
-        # put edges of this node in a stack
         edges = g.edges(node)
         # copy to a temp graph
         list_of_group_sets = []
@@ -109,13 +107,45 @@ def build_residual_network_dict(g):
                 accumulated_capacity[tuple(descendants)] = 0
                 accumulated_capacity[tuple(descendants)] += g[node][edge[1]]['capacity']
                 group_id += 1
-                temp_dict[node]['group' + str(group_id)]={}
+                temp_dict[node]['group' + str(group_id)] = {}
                 temp_dict[node]['group' + str(group_id)]['capacity'] = accumulated_capacity[tuple(descendants)]
                 temp_dict[node]['group' + str(group_id)]['used_capacity'] = 0
                 temp_dict[node]['group' + str(group_id)]['reachable_nodes'] = descendants
-                #temp_dict[node]['group'+str(group_id)]={'reachable_nodes':list(descendants)}
                 list_of_group_sets.append(set(descendants))
     return temp_dict
+
+def return_capacity(node, direction):
+    return residual_network[direction][node]['group1']['capacity']
+
+def get_group_name(src, node):
+    for group in residual_network['outgoing'][src].keys():
+        if node_reachable(src, node, group):
+            return group
+    # raise "node should be reachable in one of the groups"
+
+def get_available_capacity(src, dst, direction):
+    group = get_group_name(src, dst)
+    # print(src, dst, group)
+    return residual_network[direction][src][group]['capacity'] - \
+           residual_network[direction][src][group]['used_capacity']
+
+def update_used_capacity(src, dst, value):
+    for direction in residual_network.keys():
+        if direction == 'outgoing':
+            group = get_group_name(src, dst)
+            used_capacity = residual_network[direction][src][group]['used_capacity']
+            residual_network[direction][src][group]['used_capacity'] = used_capacity + value
+
+        if direction == 'incoming':
+            group = get_group_name(dst, src)
+            used_capacity = residual_network[direction][dst][group]['used_capacity']
+            residual_network[direction][dst][group]['used_capacity'] = used_capacity + value
+
+        # print(group)
+        # capacity = residual_network[direction][src][group]['capacity']
+
+def node_reachable(src, node, group):
+    return node in residual_network['outgoing'][src][group]['reachable_nodes']
 
 
 if __name__ == "__main__":
@@ -137,45 +167,9 @@ if __name__ == "__main__":
             max_flows_dict[(i, j)] = nx.maximum_flow_value(g, i, j)
     #print(max_flows_dict)
 
-    # dictionary for labeling links that are used for grouping them.
-    # to keep track of residual capacity.
-
-
-    def return_capacity(node, direction):
-        return residual_network[direction][node]['group1']['capacity']
-
-    def get_group_name(src, node):
-        for group in residual_network['outgoing'][src].keys():
-            if node_reachable(src, node, group):
-                return group
-        #raise "node should be reachable in one of the groups"
-
-    def get_available_capacity(src, dst, direction):
-        group = get_group_name(src, dst)
-        #print(src, dst, group)
-        return residual_network[direction][src][group]['capacity'] - \
-               residual_network[direction][src][group]['used_capacity']
-    def update_used_capacity(src, dst, value):
-        for direction in residual_network.keys():
-            if direction == 'outgoing':
-                group = get_group_name(src, dst)
-                used_capacity = residual_network[direction][src][group]['used_capacity']
-                residual_network[direction][src][group]['used_capacity'] = used_capacity + value
-
-            if direction == 'incoming':
-                group = get_group_name(dst, src)
-                used_capacity = residual_network[direction][dst][group]['used_capacity']
-                residual_network[direction][dst][group]['used_capacity'] = used_capacity + value
-
-            #print(group)
-            #capacity = residual_network[direction][src][group]['capacity']
-
-
-    def node_reachable(src, node, group):
-        return node in residual_network['outgoing'][src][group]['reachable_nodes']
     nx.draw(g, with_labels=True)
     plt.draw()
-    #plt.show()
+    #plt.show() #enable to show a graph of the network
 
     alist = np.zeros([n_nodes, n_nodes])
     tic = time.time()
