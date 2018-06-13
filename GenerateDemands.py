@@ -4,7 +4,9 @@ import numpy as np
 import random
 import time
 from termcolor import colored
+import json
 
+#tree = {'wesley': {'1': {'romulan': {'1': '0', '0': '1'}}, '0':    {'romulan': {'1': '0', '0': {'poetry': {'1': {'honor': {'1': '0', '0': '1'}}, '0': {'honor': {'1': '1', '0': '0'}}}}}}}}
 
 def create_simple_topology():
     g_temp = nx.Graph()
@@ -77,9 +79,10 @@ def check_validity(alist):
     return
 
 
-def calculate_residual_network(g):
+def build_residual_network_dict(g):
 
     temp_dict = {}
+    accumulated_capacity = {}
     # print(g.edges(0))
     for node in g.nodes():
         temp_dict[node] = {}
@@ -96,29 +99,28 @@ def calculate_residual_network(g):
             temp_g.add_edge(node, edge[1])
             descendants = nx.descendants(temp_g, node)
             if descendants in list_of_group_sets:
-                print("adding capacity")
-                accumulated_capacity += g[node][edge[1]]['capacity']
-
-                # TODO: add up capacity
+                #adding capacity
+                accumulated_capacity[tuple(descendants)] += g[node][edge[1]]['capacity']
+                temp_dict[node]['group' + str(group_id)]['capacity'] = accumulated_capacity[tuple(descendants)]
             else:
-                accumulated_capacity+=g[node][edge[1]]['capacity']
+                accumulated_capacity[tuple(descendants)] = 0
+                accumulated_capacity[tuple(descendants)] += g[node][edge[1]]['capacity']
                 group_id += 1
                 temp_dict[node]['group' + str(group_id)]={}
-                temp_dict[node]['group' + str(group_id)]['capacity'] = 2
+                temp_dict[node]['group' + str(group_id)]['capacity'] = accumulated_capacity[tuple(descendants)]
                 temp_dict[node]['group' + str(group_id)]['used_capacity'] = 0
+                temp_dict[node]['group' + str(group_id)]['reachable_nodes'] = descendants
                 #temp_dict[node]['group'+str(group_id)]={'reachable_nodes':list(descendants)}
                 list_of_group_sets.append(set(descendants))
-    print(temp_dict)
-    return None
+    return temp_dict
 
 
 if __name__ == "__main__":
 
     g = create_simple_topology()
     n_nodes = len(g)
-    print(n_nodes)
-
-    residual_network = calculate_residual_network(g)
+    residual_network = build_residual_network_dict(g)
+    residual_network = {'outgoing': residual_network, 'incoming': residual_network}
 
     max_flows_dict = {}
 
@@ -134,8 +136,75 @@ if __name__ == "__main__":
 
     # dictionary for labeling links that are used for grouping them.
     # to keep track of residual capacity.
-    # TODO: This dictionary should be automatically computed (not hardcoded!).
-    residual_network = {
+
+
+    def return_capacity(node, direction):
+        return residual_network[direction][node]['group1']['capacity']
+
+    def get_group_name(src, node):
+        for group in residual_network['outgoing'][src].keys():
+            if node_reachable(src, node, group):
+                return group
+        #raise "node should be reachable in one of the groups"
+
+        #return node in residual_network['outgoing'][src][group]['reachable_nodes']
+    def get_available_capacity(src, dst, direction):
+        group = get_group_name(src, dst)
+        #print(src, dst, group)
+        return residual_network[direction][src][group]['capacity'] - \
+               residual_network[direction][src][group]['used_capacity']
+    def update_used_capacity(src, dst, value):
+        for direction in residual_network.keys():
+            if direction == 'outgoing':
+                group = get_group_name(src, dst)
+                used_capacity = residual_network[direction][src][group]['used_capacity']
+                residual_network[direction][src][group]['used_capacity'] = used_capacity + value
+
+            if direction == 'incoming':
+                group = get_group_name(dst, src)
+                used_capacity = residual_network[direction][dst][group]['used_capacity']
+                residual_network[direction][dst][group]['used_capacity'] = used_capacity + value
+
+            #print(group)
+            #capacity = residual_network[direction][src][group]['capacity']
+
+
+    def node_reachable(src, node, group):
+        return node in residual_network['outgoing'][src][group]['reachable_nodes']
+    nx.draw(g, with_labels=True)
+    plt.draw()
+    #plt.show()
+
+    alist = np.zeros([n_nodes, n_nodes])
+    tic = time.time()
+    scaler = 0.60 # generate random up to 60% of the available unused capacity.
+    for t in range(1):
+        alist1DnoZeros = []
+        for i in range(alist.shape[0]):
+            for j in range(alist.shape[1]):
+                if i == j:
+                    continue
+                min_cap_both_directions = min(get_available_capacity(i, j, 'outgoing'),
+                                              get_available_capacity(j, i, 'incoming'))
+                if max_flows_dict[(i, j)] <= min_cap_both_directions:
+                    alist[i, j] = random.uniform(0.0, max_flows_dict[i, j] * scaler)
+                else:
+                    alist[i, j] = random.uniform(0.0, min_cap_both_directions * scaler)
+
+                #now update the used_capacity in both directions.
+                #this function will handle the both directions.
+                update_used_capacity(i, j, alist[i, j])
+                #get a 1D version with no zeros (no diagonal)
+                alist1DnoZeros.append(alist[i, j])
+        print(alist1DnoZeros)
+        check_validity(alist)
+
+    print("Required time: ", time.time() - tic)
+
+###########################################################
+# THIS IS AN EXAMPLE OF HOW THE DICTIONARY SHOULD LOOK LIKE
+'''
+residual_network = {
         'outgoing': {
             0: {
                 'group1': {
@@ -221,71 +290,4 @@ if __name__ == "__main__":
             }
         }
     }
-
-    def return_capacity(node, direction):
-        return residual_network[direction][node]['group1']['capacity']
-
-    def get_group_name(src, node):
-        for group in residual_network['outgoing'][src].keys():
-            if node_reachable(src, node, group):
-                return group
-        #raise "node should be reachable in one of the groups"
-
-        #return node in residual_network['outgoing'][src][group]['reachable_nodes']
-    def get_available_capacity(src, dst, direction):
-        group = get_group_name(src, dst)
-        #print(src, dst, group)
-        return residual_network[direction][src][group]['capacity'] - \
-               residual_network[direction][src][group]['used_capacity']
-    def update_used_capacity(src, dst, value):
-        for direction in residual_network.keys():
-            if direction == 'outgoing':
-                group = get_group_name(src, dst)
-                used_capacity = residual_network[direction][src][group]['used_capacity']
-                residual_network[direction][src][group]['used_capacity'] = used_capacity + value
-
-            if direction == 'incoming':
-                group = get_group_name(dst, src)
-                used_capacity = residual_network[direction][dst][group]['used_capacity']
-                residual_network[direction][dst][group]['used_capacity'] = used_capacity + value
-
-            #print(group)
-            #capacity = residual_network[direction][src][group]['capacity']
-
-
-
-
-    print("returned capacity:", return_capacity(0, 'outgoing'))
-    def node_reachable(src, node, group):
-        return node in residual_network['outgoing'][src][group]['reachable_nodes']
-    print("Checking if node 1 is reachable from 0: ", node_reachable(0, 1, 'group1'))
-
-    nx.draw(g, with_labels=True)
-    plt.draw()
-    #plt.show()
-
-    alist = np.zeros([n_nodes, n_nodes])
-    tic = time.time()
-    scaler = 0.60 # generate random up to 60% of the available unused capacity.
-    for t in range(1):
-        alist1DnoZeros = []
-        for i in range(alist.shape[0]):
-            for j in range(alist.shape[1]):
-                if i == j:
-                    continue
-                min_cap_both_directions = min(get_available_capacity(i, j, 'outgoing'),
-                                              get_available_capacity(j, i, 'incoming'))
-                if max_flows_dict[(i, j)] <= min_cap_both_directions:
-                    alist[i, j] = random.uniform(0.0, max_flows_dict[i, j] * scaler)
-                else:
-                    alist[i, j] = random.uniform(0.0, min_cap_both_directions * scaler)
-
-                #now update the used_capacity in both directions.
-                #this function will handle the both directions.
-                update_used_capacity(i, j, alist[i, j])
-                #get a 1D version with no zeros (no diagonal)
-                alist1DnoZeros.append(alist[i, j])
-        print(alist1DnoZeros)
-        check_validity(alist)
-
-    print("Required time: ", time.time() - tic)
+'''
