@@ -4,15 +4,12 @@ import numpy as np
 import random
 import time
 from termcolor import colored
-import json
 
-#tree = {'wesley': {'1': {'romulan': {'1': '0', '0': '1'}}, '0':    {'romulan': {'1': '0', '0': {'poetry': {'1': {'honor': {'1': '0', '0': '1'}}, '0': {'honor': {'1': '1', '0': '0'}}}}}}}}
 
 def create_simple_topology():
     g_temp = nx.Graph()
-    # Don't need to add nodes separately.
     g_temp.add_edge(0, 1, capacity=1, weight=1)  # add a "capacity" parameter
-    g_temp.add_edge(1, 2, capacity=1, weight=1)  # can have any name you like
+    g_temp.add_edge(1, 2, capacity=1, weight=1)
     g_temp.add_edge(0, 3, capacity=1, weight=1)
     g_temp.add_edge(1, 3, capacity=1, weight=1)
     g_temp.add_edge(3, 2, capacity=1, weight=1)
@@ -28,8 +25,8 @@ def create_simple_topology():
 def create_nsf_topology():
     g_temp = nx.Graph()
     # Don't need to add nodes separately.
-    g_temp.add_edge(1, 2, capacity=1, weight=1)  # add a "capacity" parameter
-    g_temp.add_edge(1, 3, capacity=1, weight=1)  # can have any name you like
+    g_temp.add_edge(1, 2, capacity=1, weight=1)
+    g_temp.add_edge(1, 3, capacity=1, weight=1)
     g_temp.add_edge(1, 8, capacity=1, weight=1)
     g_temp.add_edge(2, 3, capacity=1, weight=1)
     g_temp.add_edge(2, 4, capacity=1, weight=1)
@@ -55,13 +52,19 @@ def create_nsf_topology():
     # print(g.edges(data=True))
     return g
 
-def check_validity(alist):
+def check_validity(alist, g):
     #This function checks for two things:
     #First: if the summation of cols and rows are less or equal max_flows.
     #Second: if all the numbers in 2D array are greater than 0.
-    max_flows = [2, 3, 2, 4, 1]
-    axis0 = alist.sum(axis=0)
 
+    # max_flows is a maximum a node can send
+    # (the summation of capacities of all outgoing links)
+    max_flows = [0] * len(g)
+    for node in g.nodes():
+        for edge in g.edges(node):
+            max_flows[node] += g[node][edge[1]]['capacity']
+
+    axis0 = alist.sum(axis=0)
     axis1 = alist.sum(axis=1)
     #print("axis0: ", axis0)
     #print("Difference: ", [axis0[i] - max_flows[i] for i in range(len(max_flows))])
@@ -147,7 +150,6 @@ if __name__ == "__main__":
                 return group
         #raise "node should be reachable in one of the groups"
 
-        #return node in residual_network['outgoing'][src][group]['reachable_nodes']
     def get_available_capacity(src, dst, direction):
         group = get_group_name(src, dst)
         #print(src, dst, group)
@@ -197,7 +199,7 @@ if __name__ == "__main__":
                 #get a 1D version with no zeros (no diagonal)
                 alist1DnoZeros.append(alist[i, j])
         print(alist1DnoZeros)
-        check_validity(alist)
+        check_validity(alist, g)
 
     print("Required time: ", time.time() - tic)
 
