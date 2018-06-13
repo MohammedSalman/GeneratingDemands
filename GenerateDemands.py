@@ -25,27 +25,27 @@ def create_simple_topology():
 def create_nsf_topology():
     g_temp = nx.Graph()
     # Don't need to add nodes separately.
+    g_temp.add_edge(0, 1, capacity=1, weight=1)
+    g_temp.add_edge(0, 2, capacity=1, weight=1)
+    g_temp.add_edge(0, 7, capacity=1, weight=1)
     g_temp.add_edge(1, 2, capacity=1, weight=1)
     g_temp.add_edge(1, 3, capacity=1, weight=1)
-    g_temp.add_edge(1, 8, capacity=1, weight=1)
-    g_temp.add_edge(2, 3, capacity=1, weight=1)
-    g_temp.add_edge(2, 4, capacity=1, weight=1)
-    g_temp.add_edge(3, 6, capacity=1, weight=1)
+    g_temp.add_edge(2, 5, capacity=1, weight=1)
+    g_temp.add_edge(3, 4, capacity=1, weight=1)
+    g_temp.add_edge(3, 10, capacity=1, weight=1)
     g_temp.add_edge(4, 5, capacity=1, weight=1)
-    g_temp.add_edge(4, 11, capacity=1, weight=1)
-    g_temp.add_edge(5, 6, capacity=1, weight=1)
-    g_temp.add_edge(5, 7, capacity=1, weight=1)
-    g_temp.add_edge(6, 10, capacity=1, weight=1)
-    g_temp.add_edge(6, 13, capacity=1, weight=1)
+    g_temp.add_edge(4, 6, capacity=1, weight=1)
+    g_temp.add_edge(5, 9, capacity=1, weight=1)
+    g_temp.add_edge(5, 12, capacity=1, weight=1)
+    g_temp.add_edge(6, 7, capacity=1, weight=1)
     g_temp.add_edge(7, 8, capacity=1, weight=1)
     g_temp.add_edge(8, 9, capacity=1, weight=1)
-    g_temp.add_edge(9, 10, capacity=1, weight=1)
-    g_temp.add_edge(9, 12, capacity=1, weight=1)
-    g_temp.add_edge(9, 14, capacity=1, weight=1)
+    g_temp.add_edge(8, 11, capacity=1, weight=1)
+    g_temp.add_edge(8, 13, capacity=1, weight=1)
+    g_temp.add_edge(10, 11, capacity=1, weight=1)
+    g_temp.add_edge(10, 13, capacity=1, weight=1)
     g_temp.add_edge(11, 12, capacity=1, weight=1)
-    g_temp.add_edge(11, 14, capacity=1, weight=1)
     g_temp.add_edge(12, 13, capacity=1, weight=1)
-    g_temp.add_edge(13, 14, capacity=1, weight=1)
 
     # print(g_temp.edges(data=True))
     g = g_temp.to_directed()  # Nice function to produce a directed version
@@ -113,6 +113,7 @@ def build_residual_network_dict(g):
                 temp_dict[node]['group' + str(group_id)]['used_capacity'] = 0
                 temp_dict[node]['group' + str(group_id)]['reachable_nodes'] = descendants
                 list_of_group_sets.append(set(descendants))
+    temp_dict = {'outgoing': temp_dict, 'incoming': temp_dict}
     return temp_dict
 
 
@@ -143,7 +144,7 @@ def update_used_capacity(src, dst, value):
             residual_network[direction][dst][group]['used_capacity'] = used_capacity + value
 
         # print(group)
-        # capacity = residual_network[direction][src][group]['capacity']
+        # capacity = residual_network[direction][src][groupRodeway Inn Capri]['capacity']
 
 
 def node_reachable(src, node, group):
@@ -189,32 +190,39 @@ def create_demand(g, scaler):
 def draw_graph(g):
     nx.draw(g, with_labels=True)
     plt.draw()
-    # plt.show() #enable to show a graph of the network
+    plt.show() #enable to show a graph of the network
 
 
 if __name__ == "__main__":
 
-
-
+    g = create_simple_topology()
+    #g = create_nsf_topology()
     #scaler = 0.60  # generate random up to 60% of the available unused capacity.
-    scalers = [0.1] * 100
+    scalers = [1] * 1000
+    list_of_summed_or_averaged_demands = []
+    #scalers = [(0 + i) / 5000 for i in range(1, 5000)]
     for scaler in scalers:
-        g = create_simple_topology()
         residual_network = build_residual_network_dict(g)
-        residual_network = {'outgoing': residual_network, 'incoming': residual_network}
+
 
         # Find max_flow between all pairs:
         max_flows_dict = {}
         max_flows_dict = build_max_flows_dict(g)
         # print(max_flows_dict)
 
-        draw_graph(g)
+        #draw_graph(g)
 
         #print(scaler)
         demands = create_demand(g, scaler)
-        print(demands)
-        #print(sum(demands))
-
+        print(residual_network)
+        # (demands) is a list of demands that we need to store in a file
+        #print(demands)
+        print(scaler, np.mean(demands))
+        list_of_summed_or_averaged_demands.append(np.mean(demands))
+    plt.plot(scalers, list_of_summed_or_averaged_demands)
+    plt.xlabel('Scaler')
+    plt.ylabel('Random generated number (average of demands)')
+    plt.show()
 
 
 ###########################################################
