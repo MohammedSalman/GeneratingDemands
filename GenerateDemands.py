@@ -144,7 +144,7 @@ def update_used_capacity(src, dst, value):
             residual_network[direction][dst][group]['used_capacity'] = used_capacity + value
 
         # print(group)
-        # capacity = residual_network[direction][src][groupRodeway Inn Capri]['capacity']
+        # capacity = residual_network[direction][src][group]['capacity']
 
 
 def node_reachable(src, node, group):
