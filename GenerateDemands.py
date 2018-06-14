@@ -87,33 +87,37 @@ def build_residual_network_dict(g):
     # to keep track of residual capacity later.
     temp_dict = {}
     accumulated_capacity = {}
-    for node in g.nodes():
-        temp_dict[node] = {}
-        edges = g.edges(node)
-        # copy to a temp graph
-        list_of_group_sets = []
-        group_id = 0
-        for edge in edges:
-            temp_g = g.copy()
-            # remove all edges of that node from temp_g
-            temp_g.remove_edges_from(edges)
-            # now return current edge and calculate descendants.
-            temp_g.add_edge(node, edge[1])
-            descendants = nx.descendants(temp_g, node)
-            if descendants in list_of_group_sets:
-                # adding capacity
-                accumulated_capacity[tuple(descendants)] += g[node][edge[1]]['capacity']
-                temp_dict[node]['group' + str(group_id)]['capacity'] = accumulated_capacity[tuple(descendants)]
-            else:
-                accumulated_capacity[tuple(descendants)] = 0
-                accumulated_capacity[tuple(descendants)] += g[node][edge[1]]['capacity']
-                group_id += 1
-                temp_dict[node]['group' + str(group_id)] = {}
-                temp_dict[node]['group' + str(group_id)]['capacity'] = accumulated_capacity[tuple(descendants)]
-                temp_dict[node]['group' + str(group_id)]['used_capacity'] = 0
-                temp_dict[node]['group' + str(group_id)]['reachable_nodes'] = descendants
-                list_of_group_sets.append(set(descendants))
-    temp_dict = {'outgoing': temp_dict, 'incoming': temp_dict}
+    directions = ['outgoing', 'incoming']
+    for direction in directions:
+        temp_dict[direction] = {}
+        for node in g.nodes():
+            temp_dict[direction][node] = {}
+            edges = g.edges(node)
+            # copy to a temp graph
+            list_of_group_sets = []
+            group_id = 0
+            for edge in edges:
+                temp_g = g.copy()
+                # remove all edges of that node from temp_g
+                temp_g.remove_edges_from(edges)
+                # now return current edge and calculate descendants.
+                temp_g.add_edge(node, edge[1])
+                descendants = nx.descendants(temp_g, node)
+                if descendants in list_of_group_sets:
+                    # adding capacity
+                    accumulated_capacity[tuple(descendants)] += g[node][edge[1]]['capacity']
+                    temp_dict[direction][node]['group' + str(group_id)]['capacity'] = accumulated_capacity[tuple(descendants)]
+                else:
+                    accumulated_capacity[tuple(descendants)] = 0
+                    accumulated_capacity[tuple(descendants)] += g[node][edge[1]]['capacity']
+                    group_id += 1
+                    temp_dict[direction][node]['group' + str(group_id)] = {}
+                    temp_dict[direction][node]['group' + str(group_id)]['capacity'] = accumulated_capacity[tuple(descendants)]
+                    temp_dict[direction][node]['group' + str(group_id)]['used_capacity'] = 0
+                    temp_dict[direction][node]['group' + str(group_id)]['reachable_nodes'] = descendants
+                    list_of_group_sets.append(set(descendants))
+    # dangerous: this will not work! It will update both keys (outgoing, and incoming) with same value!
+    #temp_dict = {'outgoing': temp_dict, 'incoming': temp_dict}
     return temp_dict
 
 
@@ -132,7 +136,7 @@ def get_available_capacity(src, dst, direction):
 
 
 def update_used_capacity(src, dst, value):
-    print(src, dst)
+    #print(src, dst)
     for direction in residual_network.keys():
         if direction == 'outgoing':
             group = get_group_name(src, dst)
@@ -143,7 +147,7 @@ def update_used_capacity(src, dst, value):
             group = get_group_name(dst, src)
             used_capacity = residual_network[direction][dst][group]['used_capacity']
             residual_network[direction][dst][group]['used_capacity'] = used_capacity + value
-    print(residual_network)
+    #print(residual_network)
         # print(group)
         # capacity = residual_network[direction][src][group]['capacity']
 
@@ -199,9 +203,10 @@ if __name__ == "__main__":
     g = create_simple_topology()
     #g = create_nsf_topology()
     #scaler = 0.60  # generate random up to 60% of the available unused capacity.
-    scalers = [1] * 1
+    #scalers = [1] * 1
     list_of_summed_or_averaged_demands = []
-    #scalers = [(0 + i) / 5000 for i in range(1, 5000)]
+    n_scalers = 1000
+    scalers = [(0 + i) / n_scalers for i in range(1, n_scalers)]
     for scaler in scalers:
         residual_network = build_residual_network_dict(g)
 
@@ -217,7 +222,7 @@ if __name__ == "__main__":
         demands = create_demand(g, scaler)
         #print(residual_network)
         # (demands) is a list of demands that we need to store in a file
-        #print(demands)
+        print(demands)
         print(scaler, np.mean(demands))
         list_of_summed_or_averaged_demands.append(np.mean(demands))
     plt.plot(scalers, list_of_summed_or_averaged_demands)
