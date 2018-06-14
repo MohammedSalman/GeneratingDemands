@@ -132,6 +132,7 @@ def get_available_capacity(src, dst, direction):
 
 
 def update_used_capacity(src, dst, value):
+    print(src, dst)
     for direction in residual_network.keys():
         if direction == 'outgoing':
             group = get_group_name(src, dst)
@@ -142,7 +143,7 @@ def update_used_capacity(src, dst, value):
             group = get_group_name(dst, src)
             used_capacity = residual_network[direction][dst][group]['used_capacity']
             residual_network[direction][dst][group]['used_capacity'] = used_capacity + value
-
+    print(residual_network)
         # print(group)
         # capacity = residual_network[direction][src][group]['capacity']
 
@@ -198,7 +199,7 @@ if __name__ == "__main__":
     g = create_simple_topology()
     #g = create_nsf_topology()
     #scaler = 0.60  # generate random up to 60% of the available unused capacity.
-    scalers = [1] * 1000
+    scalers = [1] * 1
     list_of_summed_or_averaged_demands = []
     #scalers = [(0 + i) / 5000 for i in range(1, 5000)]
     for scaler in scalers:
@@ -214,7 +215,7 @@ if __name__ == "__main__":
 
         #print(scaler)
         demands = create_demand(g, scaler)
-        print(residual_network)
+        #print(residual_network)
         # (demands) is a list of demands that we need to store in a file
         #print(demands)
         print(scaler, np.mean(demands))
